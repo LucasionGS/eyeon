@@ -55,6 +55,17 @@ const app = new class App {
   }
 }
 
+const RED             = "\x1B[31m";
+const GREEN           = "\x1B[32m";
+const YELLOW          = "\x1B[33m";
+const BLUE            = "\x1B[34m";
+const PINK            = "\x1B[35m";
+
+const REDBACKGROUND   = "\x1B[47m\x1B[41m";
+const GREENBACKGROUND = "\x1B[47m\x1B[42m";
+const YELLOWBACKGROUND = "\x1B[47m\x1B[43m";
+const BLUEBACKGROUND = "\x1B[47m\x1B[44m";
+const PINKBACKGROUND = "\x1B[47m\x1B[45m";
 
 interface KeyPress {
   name: string;
@@ -69,10 +80,15 @@ app.stdin.setRawMode(true);
 app.stdin.resume();
 
 app.stdin.on("keypress", (ch: Buffer, key: KeyPress) => {
-  // console.log(key);
-  if (key && key.ctrl && key.name == "c") {
-    app.write("\x1B[2J");
-    process.exit();
+  // console.log(key);'
+  if (key) {
+    if (key.ctrl && key.name == "c") {
+      app.write("\x1B[2J");
+      process.exit();
+    }
+    if (key.name == "r") {
+      init();
+    }
   }
 });
 
@@ -80,6 +96,16 @@ app.stdin.on("keypress", (ch: Buffer, key: KeyPress) => {
 app.write("\x1B[?25l");
 let ints: { [key: string]: any } = {};
 init(); // Start app
+
+function colorTemp(temp: number, endColor = "\x1B[0m") {
+  if (temp < 40) {
+    return GREEN + temp + "°C" + endColor;
+  } else if (temp < 60) {
+    return YELLOW + temp + "°C" + endColor;
+  } else {
+    return RED + temp + "°C" + endColor;
+  }
+}
 
 async function init() {
   [app.width, app.height] = app.stdout.getWindowSize();
@@ -96,8 +122,8 @@ async function init() {
     const processes = await SI.processes();
     return [
       `CPU:`,
-      `    ${cpuTemp.main}°C | ${currentLoad.currentLoad?.toFixed(2) ?? "Loading..."}%`,
-      ...currentLoad.cpus.map((cpu, i) => `    Core #${i}: ${cpuTemp.cores[i] ? cpuTemp.cores[i] + "°C | " : ""}${cpu.load.toFixed(2)}%`),
+      `    ${colorTemp(cpuTemp.main)} | ${currentLoad.currentLoad?.toFixed(2) ?? "Loading..."}%`,
+      ...currentLoad.cpus.map((cpu, i) => `    Core #${i}: ${cpuTemp.cores[i] ? colorTemp(cpuTemp.cores[i]) + " | " : ""}${cpu.load.toFixed(2)}%`),
       "",
       `Top Processes CPU Usage`,
       ...processes.list.sort((a, b) => b.cpu - a.cpu).map((p) => `    ${p.cpu.toFixed(2)}% ${p.command}`).slice(0, 4),
@@ -130,34 +156,33 @@ function drawHeader(text: string) {
   const x = Math.floor((app.width - text.length) / 2);
   const y = 0;
   app.setCursor(x, y);
-  app.write(`\x1B[1m\x1B[32m${text}\x1B[0m`);
+  app.write(`\x1B[1m${text}\x1B[0m`);
   // Draw a line with green background color
   app.setCursor(0, app.headerHeight);
   let headerLineText = ` Server: ${os.hostname()} (${process.platform})`;
   headerLineText += " ".repeat(app.width - headerLineText.length);
-  app.write("\x1B[47m\x1B[42m" + headerLineText + "\x1B[0m\n");
+  app.write(`${PINKBACKGROUND}` + headerLineText + `\x1B[0m\n`);
 }
 
 async function drawBox(id: string, calculateStartX: () => number, contentCallback: () => Promise<string[]> | string[]) {
-  const x = typeof calculateStartX === "function" ? calculateStartX() : 0;
+  const x = Math.floor(typeof calculateStartX === "function" ? calculateStartX() : 0);
   const y = 3; // Start at line 3
   app.setCursor(x, y);
 
   // Make box half the screen width
   const boxWidth = Math.floor(app.width / 2);
   const boxHeight = app.height - y - app.headerHeight;
-  // app.write("\x1B[47m\x1B[42m" + " ".repeat(boxWidth) + "\x1B[0m\n");
   for (let i = 0; i < boxHeight; i++) {
-    app.write("\x1B[47m\x1B[42m \x1B[0m" + " ".repeat(boxWidth - 2) + "\x1B[47m\x1B[42m \x1B[0m");
+    app.write(`${PINKBACKGROUND} \x1B[0m` + ` `.repeat(boxWidth - 2) + `${PINKBACKGROUND} \x1B[0m`);
     app.setCursor(x, y + i);
   }
-  app.write("\x1B[47m\x1B[42m" + " ".repeat(boxWidth) + "\x1B[0m");
+  app.write(`${PINKBACKGROUND}` + " ".repeat(boxWidth) + "\x1B[0m");
 
   drawBoxContent();
   if (ints[id] === undefined) ints[id] = setInterval(drawBoxContent, app.delayMs)
   let leftContentScrollIndex = 0;
   async function drawBoxContent() {
-    const x = typeof calculateStartX === "function" ? calculateStartX() : 0;
+    const x = Math.floor(typeof calculateStartX === "function" ? calculateStartX() : 0);
     const y = 3; // Start at line 3
     const boxWidth = Math.floor(app.width / 2);
     const boxHeight = app.height - y - app.headerHeight;
