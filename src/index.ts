@@ -55,13 +55,13 @@ const app = new class App {
   }
 }
 
-const RED             = "\x1B[31m";
-const GREEN           = "\x1B[32m";
-const YELLOW          = "\x1B[33m";
-const BLUE            = "\x1B[34m";
-const PINK            = "\x1B[35m";
+const RED = "\x1B[31m";
+const GREEN = "\x1B[32m";
+const YELLOW = "\x1B[33m";
+const BLUE = "\x1B[34m";
+const PINK = "\x1B[35m";
 
-const REDBACKGROUND   = "\x1B[47m\x1B[41m";
+const REDBACKGROUND = "\x1B[47m\x1B[41m";
 const GREENBACKGROUND = "\x1B[47m\x1B[42m";
 const YELLOWBACKGROUND = "\x1B[47m\x1B[43m";
 const BLUEBACKGROUND = "\x1B[47m\x1B[44m";
@@ -137,54 +137,51 @@ async function init() {
   app.write("\x1B[2J");
   // Move cursor to top left
   app.resetCursor();
-
   drawHeader("Eyeon");
+  if (ints["header"] === undefined) ints["header"] = setInterval(() => drawHeader("Eyeon"), 1000);
   drawBox("left", () => 0, async () => {
     const currentLoad = await SI.currentLoad();
     const cpuTemp = await SI.cpuTemperature();
     const mem = await SI.mem();
     const processes = await SI.processes();
+    const cpuExtraIndent = cpuTemp.cores.length.toString().length;
     return [
-      `CPU:`,
-      `    ${colorTemp(cpuTemp.main)} | ${colorPercent(currentLoad.currentLoad) ?? "Loading..."}`.padEnd(46, " ") + drawPercentLine(currentLoad.currentLoad),
-      ...currentLoad.cpus.map((cpu, i) => `${`    Core #${i}: ${cpuTemp.cores[i] ? colorTemp(cpuTemp.cores[i]) + " | " : ""}${colorPercent(cpu.load)}`.padEnd(46, " ")}${drawPercentLine(cpu.load)}`),
+      `CPU:${" ".repeat(6 + cpuExtraIndent)}${drawPercentLine(currentLoad.currentLoad)} ${colorTemp(cpuTemp.main)} | ${colorPercent(currentLoad.currentLoad) ?? "Loading..."}`,
+      currentLoad.cpus.map((cpu, i) => `${`Core #${i}:${" ".repeat(cpuExtraIndent)}${drawPercentLine(cpu.load)} ${cpuTemp.cores[i] ? colorTemp(cpuTemp.cores[i]) + " | " : ""}${colorPercent(cpu.load)}`}`),
       "",
       `Top Processes CPU Usage`,
-      ...processes.list.sort((a, b) => b.cpuu - a.cpuu).map((p) => `    ${colorPercent(p.cpuu)} ${p.command}`).slice(0, 4),
+      processes.list.sort((a, b) => b.cpuu - a.cpuu).map((p) => `${colorPercent(p.cpuu)} ${p.command}`).slice(0, 4),
       "",
       `Memory:`,
-      `    ${Bytes.fromBytes(mem.active).toString(2)}/${Bytes.fromBytes(mem.total).toString(2)} (${Bytes.fromBytes(mem.available).toString(2)} available)`,
+      [
+        `${Bytes.fromBytes(mem.active).toString(2)}/${Bytes.fromBytes(mem.total).toString(2)} (${Bytes.fromBytes(mem.available).toString(2)} available)`
+      ],
       "",
       `Top Processes Memory Usage`,
-      ...processes.list.sort((a, b) => b.mem - a.mem).map((p) => `    ${colorPercent(p.mem)} ${p.command}`).slice(0, 4),
+      processes.list.sort((a, b) => b.mem - a.mem).map((p) => `${colorPercent(p.mem)} ${p.command}`).slice(0, 4),
     ];
   });
   // await new Promise(resolve => setTimeout(resolve, app.delayMs / 2));
   drawBox("right", () => app.width / 2, async () => {
     const fsSize = await SI.fsSize();
-    const fans = await SI.system();
-    // const disks = await SI.blockDevices();
-    // const diskInfo = [
-    //   ...disks.filter(d => !d.name.startsWith("loop")).map((d, i) => [
-    //     `    ${d.name} (${d.type}): ${Bytes.fromBytes(d.size).toString(2)}`,
-    //     `        Mounted at: \x1B[33m${d.mount}\x1B[1m`
-    //   ])
-    // ].reduce((a, b) => a.concat(b), []);
     return [
       `Disks:`,
       // ...diskInfo,
-      ...fsSize.map(fs => [
-        `    ${fs.mount}: ${colorPercent(100 / (fs.size / fs.used))} used`,
-        `        ${Bytes.fromBytes(fs.size).toString(2)}`,
-        `        ${Bytes.fromBytes(fs.used).toString(2)} used`,
-        `        ${Bytes.fromBytes(fs.available).toString(2)} available`,
-        ``
-      ]).reduce((a, b) => a.concat(b), []),
+      fsSize.map(fs => [
+        `${fs.mount}: ${colorPercent(100 / (fs.size / fs.used))} used`,
+        [
+          `${Bytes.fromBytes(fs.size).toString(2)}`,
+          `${Bytes.fromBytes(fs.used).toString(2)} used`,
+          `${Bytes.fromBytes(fs.available).toString(2)} available`,
+        ]
+      ]),
+      "",
     ];
   });
 }
 
-function drawHeader(text: string) {
+function drawHeader(text?: string) {
+  text ??= "Eyeon";
   // Draw in the center
   const x = Math.floor((app.width - text.length) / 2);
   const y = 0;
@@ -192,12 +189,15 @@ function drawHeader(text: string) {
   app.write(`\x1B[1m${text}\x1B[0m`);
   // Draw a line with green background color
   app.setCursor(0, app.headerHeight);
-  let headerLineText = ` Server: ${os.hostname()} (${os.type()})`;
+  let headerLineText = ` Server: ${os.hostname()} (${os.type()}) | Uptime: ${new Date(+SI.time().uptime * 1000).toTimeString().split(" ").shift()}`;
   headerLineText += " ".repeat(app.width - headerLineText.length);
   app.write(`${PINK}` + headerLineText + `\x1B[0m\n`);
 }
 
-async function drawBox(id: string, calculateStartX: () => number, contentCallback: () => Promise<string[]> | string[]) {
+type ContentCallbackType = ContentCallbackType[] | string;
+type ContentCallback = () => Promise<ContentCallbackType[]> | ContentCallbackType[];
+
+async function drawBox(id: string, calculateStartX: () => number, contentCallback: ContentCallback) {
   const x = Math.floor(typeof calculateStartX === "function" ? calculateStartX() : 0);
   const y = 3; // Start at line 3
   app.setCursor(x, y);
@@ -214,7 +214,7 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
   app.write(`${PINK}╚` + "═".repeat(boxWidth - 2) + "╝\x1B[0m");
 
   drawBoxContent();
-  if (ints[id] === undefined) ints[id] = setInterval(drawBoxContent, app.delayMs)
+  if (ints[id] === undefined) ints[id] = setInterval(drawBoxContent, app.delayMs);
   let leftContentScrollIndex = 0;
   async function drawBoxContent() {
     const x = Math.floor(typeof calculateStartX === "function" ? calculateStartX() : 0);
@@ -224,8 +224,18 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
     app.resetCursor();
     const padding = 1;
 
-    const text = (await contentCallback())
-      .map(t => t.padEnd(boxWidth - 4 - (padding * 2), " ").slice(0, boxWidth - 4 - (padding * 2)));
+    function flatDeep(arr: ContentCallbackType[], d = 1, indent = 0): string[] {
+      return (d > 0 ? arr.reduce((acc, val) => acc.concat((Array.isArray(val) ? flatDeep(val, d - 1, indent + 1) : "  ".repeat(indent) + val) as any), [])
+        : arr.slice()) as any[];
+    };
+
+    let text = flatDeep(await contentCallback(), Infinity).map(t => t.padEnd(boxWidth - 4 - (padding * 2), " "));
+    // const textExtraPadding: number[] = [];
+    text = text.map((t, i) => {
+      const extraPadding = t.match(/\x1B\[\d+m/g)?.map(m => m.length).reduce((acc, val) => acc + val, 0) ?? 0;
+      t = t.slice(0, boxWidth - 8 - (padding * 2) + extraPadding);
+      return t;
+    })
 
     for (let i = 0; i < (boxHeight - 2); i++) {
       const t = text[i + leftContentScrollIndex] ?? " ".repeat(boxWidth - 4 - (padding * 2));
