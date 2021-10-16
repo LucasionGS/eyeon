@@ -92,8 +92,6 @@ app.stdin.on("keypress", (ch: Buffer, key: KeyPress) => {
   }
 });
 
-// make cursor invisible
-app.write("\x1B[?25l");
 let ints: { [key: string]: any } = {};
 init(); // Start app
 
@@ -132,6 +130,7 @@ function drawPercentLine(percent: number, width: number = 12) {
 }
 
 async function init() {
+  app.write("\x1B[?25l"); // Hide cursor
   [app.width, app.height] = app.stdout.getWindowSize();
   // Clear screen
   app.write("\x1B[2J");
@@ -146,13 +145,13 @@ async function init() {
     const processes = await SI.processes();
     const cpuExtraIndent = cpuTemp.cores.length.toString().length;
     return [
-      `CPU:${" ".repeat(6 + cpuExtraIndent)}${drawPercentLine(currentLoad.currentLoad)} ${colorPercent(currentLoad.currentLoad) ?? "Loading..."} | ${colorTemp(cpuTemp.main)}`,
+      `CPU${" ".repeat(7 + cpuExtraIndent)}${drawPercentLine(currentLoad.currentLoad)} ${colorPercent(currentLoad.currentLoad) ?? "Loading..."} | ${colorTemp(cpuTemp.main)}`,
       currentLoad.cpus.map((cpu, i) => `Core #${i}:${" ".repeat(cpuExtraIndent)}${drawPercentLine(cpu.load)} ${colorPercent(cpu.load)}${cpuTemp.cores[i] ? " | " + colorTemp(cpuTemp.cores[i]) : ""}`),
       "",
       `Top Processes CPU Usage`,
       processes.list.sort((a, b) => b.cpuu - a.cpuu).map((p) => `${colorPercent(p.cpuu)} ${p.command}`).slice(0, 4),
       "",
-      `Memory:`,
+      `Memory`,
       [
         `${Bytes.fromBytes(mem.active).toString(2)}/${Bytes.fromBytes(mem.total).toString(2)} (${Bytes.fromBytes(mem.available).toString(2)} available)`
       ],
@@ -167,7 +166,7 @@ async function init() {
     return [
       `Disks:`,
       // ...diskInfo,
-      fsSize.map(fs => [
+      ...fsSize.map(fs => [
         `${fs.mount}: ${colorPercent(100 / (fs.size / fs.used))} used`,
         [
           `${Bytes.fromBytes(fs.size).toString(2)}`,
@@ -189,7 +188,11 @@ function drawHeader(text?: string) {
   app.write(`\x1B[1m${text}\x1B[0m`);
   // Draw a line with green background color
   app.setCursor(0, app.headerHeight);
-  let headerLineText = ` Server: ${os.hostname()} (${os.type()}) | Uptime: ${new Date(+SI.time().uptime * 1000).toTimeString().split(" ").shift()}`;
+  const [part1, part2] = [
+    ` Server: ${os.hostname()} (${os.type()})`,
+    `Uptime: ${new Date(+SI.time().uptime * 1000).toTimeString().split(" ").shift()} `
+  ];
+  let headerLineText = part1 + " ".repeat(app.width - part1.length - part2.length) + part2;
   headerLineText += " ".repeat(app.width - headerLineText.length);
   app.write(`${PINK}` + headerLineText + `\x1B[0m\n`);
 }
