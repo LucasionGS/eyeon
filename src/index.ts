@@ -99,11 +99,11 @@ init(); // Start app
 
 function colorTemp(temp: number, endColor = "\x1B[0m") {
   if (temp < 40) {
-    return GREEN + temp + "°C" + endColor;
+    return GREEN + Math.round(temp) + "°C" + endColor;
   } else if (temp < 60) {
-    return YELLOW + temp + "°C" + endColor;
+    return YELLOW + Math.round(temp) + "°C" + endColor;
   } else {
-    return RED + temp + "°C" + endColor;
+    return RED + Math.round(temp) + "°C" + endColor;
   }
 }
 
