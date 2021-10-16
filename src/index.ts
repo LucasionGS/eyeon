@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import SI from "systeminformation";
 import realine from "readline";
 // @ts-expect-error
