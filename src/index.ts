@@ -146,8 +146,8 @@ async function init() {
     const processes = await SI.processes();
     const cpuExtraIndent = cpuTemp.cores.length.toString().length;
     return [
-      `CPU:${" ".repeat(6 + cpuExtraIndent)}${drawPercentLine(currentLoad.currentLoad)} ${colorTemp(cpuTemp.main)} | ${colorPercent(currentLoad.currentLoad) ?? "Loading..."}`,
-      currentLoad.cpus.map((cpu, i) => `${`Core #${i}:${" ".repeat(cpuExtraIndent)}${drawPercentLine(cpu.load)} ${cpuTemp.cores[i] ? colorTemp(cpuTemp.cores[i]) + " | " : ""}${colorPercent(cpu.load)}`}`),
+      `CPU:${" ".repeat(6 + cpuExtraIndent)}${drawPercentLine(currentLoad.currentLoad)} ${colorPercent(currentLoad.currentLoad) ?? "Loading..."} | ${colorTemp(cpuTemp.main)}`,
+      currentLoad.cpus.map((cpu, i) => `Core #${i}:${" ".repeat(cpuExtraIndent)}${drawPercentLine(cpu.load)} ${colorPercent(cpu.load)}${cpuTemp.cores[i] ? " | " + colorTemp(cpuTemp.cores[i]) : ""}`),
       "",
       `Top Processes CPU Usage`,
       processes.list.sort((a, b) => b.cpuu - a.cpuu).map((p) => `${colorPercent(p.cpuu)} ${p.command}`).slice(0, 4),
@@ -173,9 +173,9 @@ async function init() {
           `${Bytes.fromBytes(fs.size).toString(2)}`,
           `${Bytes.fromBytes(fs.used).toString(2)} used`,
           `${Bytes.fromBytes(fs.available).toString(2)} available`,
+          "",
         ]
       ]),
-      "",
     ];
   });
 }
@@ -204,7 +204,7 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
 
   // Make box half the screen width
   const boxWidth = Math.floor(app.width / 2);
-  const boxHeight = app.height - y - app.headerHeight;
+  const boxHeight = app.height - y - app.headerHeight + 1;
   app.write(`${PINK}╔` + "═".repeat(boxWidth - 2) + "╗\x1B[0m");
   app.setCursor(x, y + 1);
   for (let i = 0; i < boxHeight; i++) {
