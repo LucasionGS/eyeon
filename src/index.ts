@@ -72,6 +72,8 @@ app.stdin.on("keypress", (ch: Buffer, key: KeyPress) => {
   }
 });
 
+// make cursor invisible
+app.write("\x1B[?25l");
 let ints: { [key: string]: any } = {};
 init(); // Start app
 
@@ -172,4 +174,12 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
 // On screen resize
 app.stdout.on("resize", () => {
   init();
+});
+
+// on node exit
+process.on("exit", () => {
+  app.write("\x1B[2J");
+  app.resetCursor();
+  // make cursor visible
+  app.write("\x1B[?25h");
 });
