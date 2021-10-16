@@ -156,13 +156,12 @@ async function init() {
       ])
     ].reduce((a, b) => a.concat(b), []);
     return [
-      `Disk:`,
+      `Disks:`,
       // ...diskInfo,
       ...fsSize.map(fs => [
-        `    ${fs.mount}:`,
+        `    ${fs.mount}: ${colorPercent(100 / (fs.size / fs.used))} used`,
         `        ${Bytes.fromBytes(fs.size).toString(2)}`,
         `        ${Bytes.fromBytes(fs.used).toString(2)} used`,
-        `        ${colorPercent(100 / (fs.size / fs.used))} used`,
         `        ${Bytes.fromBytes(fs.available).toString(2)} available`,
         ``
       ]).reduce((a, b) => a.concat(b), []),
@@ -178,7 +177,7 @@ function drawHeader(text: string) {
   app.write(`\x1B[1m${text}\x1B[0m`);
   // Draw a line with green background color
   app.setCursor(0, app.headerHeight);
-  let headerLineText = ` Server: ${os.hostname()} (${process.platform})`;
+  let headerLineText = ` Server: ${os.hostname()} (${os.type()})`;
   headerLineText += " ".repeat(app.width - headerLineText.length);
   app.write(`${PINKBACKGROUND}` + headerLineText + `\x1B[0m\n`);
 }
