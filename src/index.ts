@@ -10,7 +10,7 @@ import os from "os";
 const args = process.argv.slice(2);
 
 const app = new class App {
-  delayMs = parseInt(args[0]) || 1000;
+  delayMs = parseInt(args[0]) || 2000;
   stdout = process.stdout;
   stdin = process.stdin;
   width: number;
@@ -117,6 +117,20 @@ function colorPercent(percent: number, endColor = "\x1B[0m") {
   }
 }
 
+function drawPercentLine(percent: number, width: number = 12) {
+  // const x = 0;
+  // const y = app.headerHeight + 1;
+  let line = "[";
+  for (let i = 0; i < (width - 2); i++) {
+    if (i < percent / 100 * (width - 2)) {
+      line += GREEN + "▇";
+    } else {
+      line += " ";
+    }
+  }
+  return line + "\x1B[0m]";
+}
+
 async function init() {
   [app.width, app.height] = app.stdout.getWindowSize();
   // Clear screen
@@ -132,8 +146,8 @@ async function init() {
     const processes = await SI.processes();
     return [
       `CPU:`,
-      `    ${colorTemp(cpuTemp.main)} | ${colorPercent(currentLoad.currentLoad) ?? "Loading..."}`,
-      ...currentLoad.cpus.map((cpu, i) => `    Core #${i}: ${cpuTemp.cores[i] ? colorTemp(cpuTemp.cores[i]) + " | " : ""}${colorPercent(cpu.load)}`),
+      `    ${colorTemp(cpuTemp.main)} | ${colorPercent(currentLoad.currentLoad) ?? "Loading..."}`.padEnd(46, " ") + drawPercentLine(currentLoad.currentLoad),
+      ...currentLoad.cpus.map((cpu, i) => `${`    Core #${i}: ${cpuTemp.cores[i] ? colorTemp(cpuTemp.cores[i]) + " | " : ""}${colorPercent(cpu.load)}`.padEnd(46, " ")}${drawPercentLine(cpu.load)}`),
       "",
       `Top Processes CPU Usage`,
       ...processes.list.sort((a, b) => b.cpuu - a.cpuu).map((p) => `    ${colorPercent(p.cpuu)} ${p.command}`).slice(0, 4),
@@ -145,16 +159,17 @@ async function init() {
       ...processes.list.sort((a, b) => b.mem - a.mem).map((p) => `    ${colorPercent(p.mem)} ${p.command}`).slice(0, 4),
     ];
   });
-  await new Promise(resolve => setTimeout(resolve, app.delayMs / 2));
+  // await new Promise(resolve => setTimeout(resolve, app.delayMs / 2));
   drawBox("right", () => app.width / 2, async () => {
-    const disks = await SI.blockDevices();
     const fsSize = await SI.fsSize();
-    const diskInfo = [
-      ...disks.filter(d => !d.name.startsWith("loop")).map((d, i) => [
-        `    ${d.name} (${d.type}): ${Bytes.fromBytes(d.size).toString(2)}`,
-        `        Mounted at: \x1B[33m${d.mount}\x1B[1m`
-      ])
-    ].reduce((a, b) => a.concat(b), []);
+    const fans = await SI.system();
+    // const disks = await SI.blockDevices();
+    // const diskInfo = [
+    //   ...disks.filter(d => !d.name.startsWith("loop")).map((d, i) => [
+    //     `    ${d.name} (${d.type}): ${Bytes.fromBytes(d.size).toString(2)}`,
+    //     `        Mounted at: \x1B[33m${d.mount}\x1B[1m`
+    //   ])
+    // ].reduce((a, b) => a.concat(b), []);
     return [
       `Disks:`,
       // ...diskInfo,
@@ -179,7 +194,7 @@ function drawHeader(text: string) {
   app.setCursor(0, app.headerHeight);
   let headerLineText = ` Server: ${os.hostname()} (${os.type()})`;
   headerLineText += " ".repeat(app.width - headerLineText.length);
-  app.write(`${PINKBACKGROUND}` + headerLineText + `\x1B[0m\n`);
+  app.write(`${PINK}` + headerLineText + `\x1B[0m\n`);
 }
 
 async function drawBox(id: string, calculateStartX: () => number, contentCallback: () => Promise<string[]> | string[]) {
@@ -190,18 +205,20 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
   // Make box half the screen width
   const boxWidth = Math.floor(app.width / 2);
   const boxHeight = app.height - y - app.headerHeight;
+  app.write(`${PINK}╔` + "═".repeat(boxWidth - 2) + "╗\x1B[0m");
+  app.setCursor(x, y + 1);
   for (let i = 0; i < boxHeight; i++) {
-    app.write(`${PINKBACKGROUND} \x1B[0m` + ` `.repeat(boxWidth - 2) + `${PINKBACKGROUND} \x1B[0m`);
-    app.setCursor(x, y + i);
+    app.write(`${PINK}║\x1B[0m` + ` `.repeat(boxWidth - 2) + `${PINK}║\x1B[0m`);
+    app.setCursor(x, y + i + 1);
   }
-  app.write(`${PINKBACKGROUND}` + " ".repeat(boxWidth) + "\x1B[0m");
+  app.write(`${PINK}╚` + "═".repeat(boxWidth - 2) + "╝\x1B[0m");
 
   drawBoxContent();
   if (ints[id] === undefined) ints[id] = setInterval(drawBoxContent, app.delayMs)
   let leftContentScrollIndex = 0;
   async function drawBoxContent() {
     const x = Math.floor(typeof calculateStartX === "function" ? calculateStartX() : 0);
-    const y = 3; // Start at line 3
+    const y = 4; // Start at line 3
     const boxWidth = Math.floor(app.width / 2);
     const boxHeight = app.height - y - app.headerHeight;
     app.resetCursor();
