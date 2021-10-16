@@ -118,10 +118,18 @@ function colorPercent(percent: number, endColor = "\x1B[0m") {
 function drawPercentLine(percent: number, width: number = 12) {
   // const x = 0;
   // const y = app.headerHeight + 1;
+  let color: string;
+  if (percent < 50) {
+    color = GREEN;
+  } else if (percent < 80) {
+    color = YELLOW;
+  } else {
+    color = RED;
+  }
   let line = "[";
   for (let i = 0; i < (width - 2); i++) {
     if (i < percent / 100 * (width - 2)) {
-      line += GREEN + "▇";
+      line += color + "▇";
     } else {
       line += " ";
     }
@@ -188,9 +196,13 @@ function drawHeader(text?: string) {
   app.write(`\x1B[1m${text}\x1B[0m`);
   // Draw a line with green background color
   app.setCursor(0, app.headerHeight);
+  const time = +SI.time().uptime;
+  const hours = Math.floor(time / 3600);
+  const minutes = Math.floor((time % 3600) / 60);
+  const seconds = Math.floor(time % 60);
   const [part1, part2] = [
     ` Server: ${os.hostname()} (${os.type()})`,
-    `Uptime: ${new Date(+SI.time().uptime * 1000).toTimeString().split(" ").shift()} `
+    `Uptime: ${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")} `
   ];
   let headerLineText = part1 + " ".repeat(app.width - part1.length - part2.length) + part2;
   headerLineText += " ".repeat(app.width - headerLineText.length);
