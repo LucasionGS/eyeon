@@ -1,0 +1,24 @@
+{
+  "name": "eyeon",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "bin": {
+    "eyeon": "dist/index.js"
+  },
+  "scripts": {
+    "watch": "tsc -w",
+    "start": "node ."
+  },
+  "keywords": [],
+  "author": "Lucasion",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^16.11.0",
+    "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "keypress": "^0.2.1",
+    "systeminformation": "^5.9.7"
+  }
+}
