@@ -7,7 +7,10 @@ import keypress from "keypress";
 import Bytes from "./Bytes";
 import os from "os";
 
+const args = process.argv.slice(2);
+
 const app = new class App {
+  delayMs = parseInt(args[0]) || 5000;
   stdout = process.stdout;
   stdin = process.stdin;
   width: number;
@@ -52,6 +55,7 @@ const app = new class App {
   }
 }
 
+
 interface KeyPress {
   name: string;
   ctrl: boolean;
@@ -65,7 +69,7 @@ app.stdin.setRawMode(true);
 app.stdin.resume();
 
 app.stdin.on("keypress", (ch: Buffer, key: KeyPress) => {
-  console.log(key);
+  // console.log(key);
   if (key && key.ctrl && key.name == "c") {
     app.write("\x1B[2J");
     process.exit();
@@ -89,21 +93,27 @@ async function init() {
     const currentLoad = await SI.currentLoad();
     const cpuTemp = await SI.cpuTemperature();
     const mem = await SI.mem();
+    const processes = await SI.processes();
     return [
       `CPU:`,
       `    ${cpuTemp.main}°C | ${currentLoad.currentLoad?.toFixed(2) ?? "Loading..."}%`,
-      ...currentLoad.cpus.map((cpu, i) => `    Core #${i}: ${cpuTemp.cores[i]}°C | ${cpu.load.toFixed(2)}%`),
+      ...currentLoad.cpus.map((cpu, i) => `    Core #${i}: ${cpuTemp.cores[i] ? cpuTemp.cores[i] + "°C | " : ""}${cpu.load.toFixed(2)}%`),
+      "",
+      `Top Processes CPU Usage`,
+      ...processes.list.sort((a, b) => b.cpu - a.cpu).map((p) => `    ${p.cpu.toFixed(2)}% ${p.command}`).slice(0, 4),
       "",
       `Memory:`,
-      `    ${Bytes.fromBytes(mem.active).toString(2)}/${Bytes.fromBytes(mem.total).toString(2)}`
+      `    ${Bytes.fromBytes(mem.active).toString(2)}/${Bytes.fromBytes(mem.total).toString(2)} (${Bytes.fromBytes(mem.available).toString(2)} available)`,
+      "",
+      `Top Processes Memory Usage`,
+      ...processes.list.sort((a, b) => b.mem - a.mem).map((p) => `    ${p.mem.toFixed(2)}% ${p.command}`).slice(0, 4),
     ];
   });
-  // wait 200 milliseconds
-  await new Promise(resolve => setTimeout(resolve, 200));
+  await new Promise(resolve => setTimeout(resolve, app.delayMs / 2));
   drawBox("right", () => app.width / 2, async () => {
     const disks = await SI.blockDevices();
     const diskInfo = [
-      ...disks.map(d => [
+      ...disks.filter(d => !d.name.startsWith("loop")).map(d => [
         `    ${d.name} (${d.type}): ${Bytes.fromBytes(d.size).toString(2)}`,
         `        Mounted at: \x1B[33m${d.mount}\x1B[1m`
       ])
@@ -144,7 +154,7 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
   app.write("\x1B[47m\x1B[42m" + " ".repeat(boxWidth) + "\x1B[0m");
 
   drawBoxContent();
-  if (ints[id] === undefined) ints[id] = setInterval(drawBoxContent, 1000)
+  if (ints[id] === undefined) ints[id] = setInterval(drawBoxContent, app.delayMs)
   let leftContentScrollIndex = 0;
   async function drawBoxContent() {
     const x = typeof calculateStartX === "function" ? calculateStartX() : 0;
@@ -155,7 +165,7 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
     const padding = 1;
 
     const text = (await contentCallback())
-      .map(t => t.padEnd(boxWidth - 4 - (padding * 2), " "));
+      .map(t => t.padEnd(boxWidth - 4 - (padding * 2), " ").slice(0, boxWidth - 4 - (padding * 2)));
 
     for (let i = 0; i < (boxHeight - 2); i++) {
       const t = text[i + leftContentScrollIndex] ?? " ".repeat(boxWidth - 4 - (padding * 2));
