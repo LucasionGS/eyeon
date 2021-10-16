@@ -10,7 +10,7 @@ import os from "os";
 const args = process.argv.slice(2);
 
 const app = new class App {
-  delayMs = parseInt(args[0]) || 5000;
+  delayMs = parseInt(args[0]) || 1000;
   stdout = process.stdout;
   stdin = process.stdin;
   width: number;
@@ -136,27 +136,36 @@ async function init() {
       ...currentLoad.cpus.map((cpu, i) => `    Core #${i}: ${cpuTemp.cores[i] ? colorTemp(cpuTemp.cores[i]) + " | " : ""}${colorPercent(cpu.load)}`),
       "",
       `Top Processes CPU Usage`,
-      ...processes.list.sort((a, b) => b.cpu - a.cpu).map((p) => `    ${p.cpu.toFixed(2)}% ${p.command}`).slice(0, 4),
+      ...processes.list.sort((a, b) => b.cpuu - a.cpuu).map((p) => `    ${colorPercent(p.cpuu)} ${p.command}`).slice(0, 4),
       "",
       `Memory:`,
       `    ${Bytes.fromBytes(mem.active).toString(2)}/${Bytes.fromBytes(mem.total).toString(2)} (${Bytes.fromBytes(mem.available).toString(2)} available)`,
       "",
       `Top Processes Memory Usage`,
-      ...processes.list.sort((a, b) => b.mem - a.mem).map((p) => `    ${p.mem.toFixed(2)}% ${p.command}`).slice(0, 4),
+      ...processes.list.sort((a, b) => b.mem - a.mem).map((p) => `    ${colorPercent(p.mem)} ${p.command}`).slice(0, 4),
     ];
   });
   await new Promise(resolve => setTimeout(resolve, app.delayMs / 2));
   drawBox("right", () => app.width / 2, async () => {
     const disks = await SI.blockDevices();
+    const fsSize = await SI.fsSize();
     const diskInfo = [
-      ...disks.filter(d => !d.name.startsWith("loop")).map(d => [
+      ...disks.filter(d => !d.name.startsWith("loop")).map((d, i) => [
         `    ${d.name} (${d.type}): ${Bytes.fromBytes(d.size).toString(2)}`,
         `        Mounted at: \x1B[33m${d.mount}\x1B[1m`
       ])
     ].reduce((a, b) => a.concat(b), []);
     return [
       `Disk:`,
-      ...diskInfo,
+      // ...diskInfo,
+      ...fsSize.map(fs => [
+        `    ${fs.mount}:`,
+        `        ${Bytes.fromBytes(fs.size).toString(2)}`,
+        `        ${Bytes.fromBytes(fs.used).toString(2)} used`,
+        `        ${colorPercent(100 / (fs.size / fs.used))} used`,
+        `        ${Bytes.fromBytes(fs.available).toString(2)} available`,
+        ``
+      ]).reduce((a, b) => a.concat(b), []),
     ];
   });
 }
