@@ -107,6 +107,16 @@ function colorTemp(temp: number, endColor = "\x1B[0m") {
   }
 }
 
+function colorPercent(percent: number, endColor = "\x1B[0m") {
+  if (percent < 50) {
+    return GREEN + percent?.toFixed(2) + "%" + endColor;
+  } else if (percent < 80) {
+    return YELLOW + percent?.toFixed(2) + "%" + endColor;
+  } else {
+    return RED + percent?.toFixed(2) + "%" + endColor;
+  }
+}
+
 async function init() {
   [app.width, app.height] = app.stdout.getWindowSize();
   // Clear screen
@@ -122,8 +132,8 @@ async function init() {
     const processes = await SI.processes();
     return [
       `CPU:`,
-      `    ${colorTemp(cpuTemp.main)} | ${currentLoad.currentLoad?.toFixed(2) ?? "Loading..."}%`,
-      ...currentLoad.cpus.map((cpu, i) => `    Core #${i}: ${cpuTemp.cores[i] ? colorTemp(cpuTemp.cores[i]) + " | " : ""}${cpu.load.toFixed(2)}%`),
+      `    ${colorTemp(cpuTemp.main)} | ${colorPercent(currentLoad.currentLoad) ?? "Loading..."}`,
+      ...currentLoad.cpus.map((cpu, i) => `    Core #${i}: ${cpuTemp.cores[i] ? colorTemp(cpuTemp.cores[i]) + " | " : ""}${colorPercent(cpu.load)}`),
       "",
       `Top Processes CPU Usage`,
       ...processes.list.sort((a, b) => b.cpu - a.cpu).map((p) => `    ${p.cpu.toFixed(2)}% ${p.command}`).slice(0, 4),
