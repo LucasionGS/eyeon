@@ -55,11 +55,13 @@ const app = new class App {
   }
 }
 
+const WHITE = "\x1B[1m";
 const RED = "\x1B[31m";
 const GREEN = "\x1B[32m";
 const YELLOW = "\x1B[33m";
 const BLUE = "\x1B[34m";
 const PINK = "\x1B[35m";
+
 
 const REDBACKGROUND = "\x1B[47m\x1B[41m";
 const GREENBACKGROUND = "\x1B[47m\x1B[42m";
@@ -197,16 +199,26 @@ function drawHeader(text?: string) {
   // Draw a line with green background color
   app.setCursor(0, app.headerHeight);
   const time = +SI.time().uptime;
-  const hours = Math.floor(time / 3600);
-  const minutes = Math.floor((time % 3600) / 60);
+
   const seconds = Math.floor(time % 60);
+  const minutes = Math.floor((time % 3600) / 60);
+  const hours = Math.floor(time / 3600);
+  const days = Math.floor(time / 86400);
+
+  const dateArray = [
+    `${days.toString().padStart(2, "0")}d`,
+    `${hours.toString().padStart(2, "0")}h`,
+    `${minutes.toString().padStart(2, "0")}m`,
+    `${seconds.toString().padStart(2, "0")}s`,
+  ];
+  
   const [part1, part2] = [
     ` Server: ${os.hostname()} (${os.type()})`,
     `Uptime: ${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")} `
   ];
   let headerLineText = part1 + " ".repeat(app.width - part1.length - part2.length) + part2;
   headerLineText += " ".repeat(app.width - headerLineText.length);
-  app.write(`${PINK}` + headerLineText + `\x1B[0m\n`);
+  app.write(`${WHITE}` + headerLineText + `\x1B[0m\n`);
 }
 
 type ContentCallbackType = ContentCallbackType[] | string;
