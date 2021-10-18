@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import SI from "systeminformation";
-import realine from "readline";
 // @ts-expect-error
 import keypress from "keypress";
 import Bytes from "./Bytes";
@@ -55,6 +54,7 @@ const app = new class App {
   }
 }
 
+const RESET = "\x1B[0m";
 const WHITE = "\x1B[1m";
 const RED = "\x1B[31m";
 const GREEN = "\x1B[32m";
@@ -122,18 +122,18 @@ function drawPercentLine(percent: number, width: number = 12) {
   // const y = app.headerHeight + 1;
   let color: string;
   if (percent < 50) {
-    color = GREEN;
+    color = GREENBACKGROUND;
   } else if (percent < 80) {
-    color = YELLOW;
+    color = YELLOWBACKGROUND;
   } else {
-    color = RED;
+    color = REDBACKGROUND;
   }
   let line = "[";
   for (let i = 0; i < (width - 2); i++) {
     if (i < percent / 100 * (width - 2)) {
-      line += color + "▇";
+      line += color + " ";
     } else {
-      line += " ";
+      line += RESET + " ";
     }
   }
   return line + "\x1B[0m]";
@@ -154,9 +154,11 @@ async function init() {
     const mem = await SI.mem();
     const processes = await SI.processes();
     const cpuExtraIndent = cpuTemp.cores.length.toString().length;
+    // const ccs = await SI.cpuCurrentSpeed()
     return [
       `CPU${" ".repeat(7 + cpuExtraIndent)}${drawPercentLine(currentLoad.currentLoad)} ${colorPercent(currentLoad.currentLoad) ?? "Loading..."} | ${colorTemp(cpuTemp.main)}`,
       currentLoad.cpus.map((cpu, i) => `Core #${i}:${" ".repeat(cpuExtraIndent)}${drawPercentLine(cpu.load)} ${colorPercent(cpu.load)}${cpuTemp.cores[i] ? " | " + colorTemp(cpuTemp.cores[i]) : ""}`),
+      // ccs.cores.map(cc => cc.toString()),
       "",
       `Top Processes CPU Usage`,
       processes.list.sort((a, b) => b.cpuu - a.cpuu).map((p) => `${colorPercent(p.cpuu)} ${p.command}`).slice(0, 4),
