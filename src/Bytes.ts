@@ -15,7 +15,9 @@ export default class Bytes {
   
   public toString(fractionDigits?: number): string {
     if (this.value < Bytes.denominatorKB) {
-      return `${this.value} B`;
+      let value: any = this.value;
+      if (fractionDigits !== undefined) value = value.toFixed(fractionDigits);
+      return `${value} B`;
     } else if (this.value < Bytes.denominatorMB) {
       let value: any = this.value / Bytes.denominatorKB;
       if (fractionDigits !== undefined) value = value.toFixed(fractionDigits);

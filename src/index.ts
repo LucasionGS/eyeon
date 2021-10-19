@@ -99,21 +99,21 @@ init(); // Start app
 
 function colorTemp(temp: number, endColor = "\x1B[0m") {
   if (temp < 40) {
-    return GREEN + Math.round(temp) + "°C" + endColor;
+    return GREEN + Math.round(temp).toString().padStart(2) + "°C" + endColor;
   } else if (temp < 60) {
-    return YELLOW + Math.round(temp) + "°C" + endColor;
+    return YELLOW + Math.round(temp).toString().padStart(2) + "°C" + endColor;
   } else {
-    return RED + Math.round(temp) + "°C" + endColor;
+    return RED + Math.round(temp).toString().padStart(2) + "°C" + endColor;
   }
 }
 
 function colorPercent(percent: number, endColor = "\x1B[0m") {
   if (percent < 50) {
-    return GREEN + percent?.toFixed(2) + "%" + endColor;
+    return GREEN + percent?.toFixed(2).padStart(5) + "%" + endColor;
   } else if (percent < 80) {
-    return YELLOW + percent?.toFixed(2) + "%" + endColor;
+    return YELLOW + percent?.toFixed(2).padStart(5) + "%" + endColor;
   } else {
-    return RED + percent?.toFixed(2) + "%" + endColor;
+    return RED + percent?.toFixed(2).padStart(5) + "%" + endColor;
   }
 }
 
@@ -151,9 +151,10 @@ async function init() {
   drawBox("left", () => 0, async () => {
     const currentLoad = await SI.currentLoad();
     const cpuTemp = await SI.cpuTemperature();
+    const cpuExtraIndent = cpuTemp.cores.length.toString().length;
     const mem = await SI.mem();
     const processes = await SI.processes();
-    const cpuExtraIndent = cpuTemp.cores.length.toString().length;
+    const network = await SI.networkStats();
     // const ccs = await SI.cpuCurrentSpeed()
     return [
       `CPU${" ".repeat(7 + cpuExtraIndent)}${drawPercentLine(currentLoad.currentLoad)} ${colorPercent(currentLoad.currentLoad) ?? "Loading..."} | ${colorTemp(cpuTemp.main)}`,
@@ -170,6 +171,15 @@ async function init() {
       "",
       `Top Processes Memory Usage`,
       processes.list.sort((a, b) => b.mem - a.mem).map((p) => `${colorPercent(p.mem)} ${p.command}`).slice(0, 4),
+      "",
+      `Network`,
+      network.map((n) => [
+        `${n.iface}:`,
+        [
+          `Transfer: ${Bytes.fromBytes(n.rx_sec).toString(2)}/s`,
+          `Received: ${Bytes.fromBytes(n.tx_sec).toString(2)}/s`,
+        ]
+      ]),
     ];
   });
   // await new Promise(resolve => setTimeout(resolve, app.delayMs / 2));
@@ -204,7 +214,7 @@ function drawHeader(text?: string) {
 
   const seconds = Math.floor(time % 60);
   const minutes = Math.floor((time % 3600) / 60);
-  const hours = Math.floor(time / 3600);
+  const hours = Math.floor(time % (3600 * 24) / 3600);
   const days = Math.floor(time / 86400);
 
   const dateArray = [
@@ -213,10 +223,10 @@ function drawHeader(text?: string) {
     `${minutes.toString().padStart(2, "0")}m`,
     `${seconds.toString().padStart(2, "0")}s`,
   ];
-  
+
   const [part1, part2] = [
     ` Server: ${os.hostname()} (${os.type()})`,
-    `Uptime: ${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")} `
+    `Uptime: ${dateArray.join(" ")} `
   ];
   let headerLineText = part1 + " ".repeat(app.width - part1.length - part2.length) + part2;
   headerLineText += " ".repeat(app.width - headerLineText.length);
@@ -233,7 +243,7 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
 
   // Make box half the screen width
   const boxWidth = Math.floor(app.width / 2);
-  const boxHeight = app.height - y - app.headerHeight + 1;
+  const boxHeight = app.height - y - app.headerHeight + 2;
   app.write(`${PINK}╔` + "═".repeat(boxWidth - 2) + "╗\x1B[0m");
   app.setCursor(x, y + 1);
   for (let i = 0; i < boxHeight; i++) {
@@ -249,9 +259,9 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
     const x = Math.floor(typeof calculateStartX === "function" ? calculateStartX() : 0);
     const y = 4; // Start at line 3
     const boxWidth = Math.floor(app.width / 2);
-    const boxHeight = app.height - y - app.headerHeight;
+    const boxHeight = app.height - app.headerHeight - (y / 2);
     app.resetCursor();
-    const padding = 1;
+    const padding = 0;
 
     function flatDeep(arr: ContentCallbackType[], d = 1, indent = 0): string[] {
       return (d > 0 ? arr.reduce((acc, val) => acc.concat((Array.isArray(val) ? flatDeep(val, d - 1, indent + 1) : "  ".repeat(indent) + val) as any), [])
@@ -266,7 +276,7 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
       return t;
     })
 
-    for (let i = 0; i < (boxHeight - 2); i++) {
+    for (let i = 0; i < Math.ceil(boxHeight - padding); i++) {
       const t = text[i + leftContentScrollIndex] ?? " ".repeat(boxWidth - 4 - (padding * 2));
       app.setCursor(x + 2 + padding, y + padding + i);
       app.write(`\x1B[1m${t}\x1B[0m`);
@@ -274,7 +284,7 @@ async function drawBox(id: string, calculateStartX: () => number, contentCallbac
 
     leftContentScrollIndex++;
 
-    if (leftContentScrollIndex >= text.length - (boxHeight - 2)) {
+    if (leftContentScrollIndex >= text.length - (boxHeight - padding) + 1) {
       leftContentScrollIndex = 0;
     }
   }
