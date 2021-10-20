@@ -162,7 +162,7 @@ async function init() {
       // ccs.cores.map(cc => cc.toString()),
       "",
       `Top Processes CPU Usage`,
-      processes.list.sort((a, b) => b.cpuu - a.cpuu).map((p) => `${colorPercent(p.cpuu)} ${p.command}`).slice(0, 4),
+      processes.list.sort((a, b) => b.cpuu - a.cpuu).map((p) => `${colorPercent(p.cpuu)} ${p.pid === process.pid ? "eyeon" : p.command}`).slice(0, 4),
       "",
       `Memory`,
       [
@@ -170,7 +170,7 @@ async function init() {
       ],
       "",
       `Top Processes Memory Usage`,
-      processes.list.sort((a, b) => b.mem - a.mem).map((p) => `${colorPercent(p.mem)} ${p.command}`).slice(0, 4),
+      processes.list.sort((a, b) => b.mem - a.mem).map((p) => `${colorPercent(p.mem)} ${p.pid === process.pid ? "Eyeon" : p.command}`).slice(0, 4),
       "",
       `Network`,
       network.map((n) => [
