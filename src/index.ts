@@ -176,8 +176,8 @@ async function init() {
       network.map((n) => [
         `${n.iface}:`,
         [
-          `Transfer: ${Bytes.fromBytes(n.rx_sec).toString(2)}/s`,
-          `Received: ${Bytes.fromBytes(n.tx_sec).toString(2)}/s`,
+          `Transfer: ${Bytes.fromBytes(n.tx_sec).toString(2)}/s`,
+          `Received: ${Bytes.fromBytes(n.rx_sec).toString(2)}/s`,
         ]
       ]),
     ];
