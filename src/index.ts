@@ -4,7 +4,7 @@ import SI from "systeminformation";
 // @ts-expect-error
 import keypress from "keypress";
 import Bytes from "./Bytes";
-import os from "os";
+import os from "node:os";
 
 const args = process.argv.slice(2);
 

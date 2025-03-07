@@ -1,0 +1,1 @@
+deno run --unstable-sloppy-imports -A src/index.ts "$@"

@@ -1,0 +1,1 @@
+deno compile --no-check --unstable-sloppy-imports --output build/eyeon  -A src/index.ts

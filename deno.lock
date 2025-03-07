@@ -1,0 +1,33 @@
+{
+  "version": "4",
+  "specifiers": {
+    "npm:@types/node@^16.11.0": "16.18.126",
+    "npm:keypress@~0.2.1": "0.2.1",
+    "npm:systeminformation@^5.9.7": "5.25.11",
+    "npm:typescript@^4.4.4": "4.9.5"
+  },
+  "npm": {
+    "@types/node@16.18.126": {
+      "integrity": "sha512-OTcgaiwfGFBKacvfwuHzzn1KLxH/er8mluiy8/uM3sGXHaRe73RrSIj01jow9t4kJEW633Ov+cOexXeiApTyAw=="
+    },
+    "keypress@0.2.1": {
+      "integrity": "sha512-HjorDJFNhnM4SicvaUXac0X77NiskggxJdesG72+O5zBKpSqKFCrqmndKVqpu3pFqkla0St6uGk8Ju0sCurrmg=="
+    },
+    "systeminformation@5.25.11": {
+      "integrity": "sha512-jI01fn/t47rrLTQB0FTlMCC+5dYx8o0RRF+R4BPiUNsvg5OdY0s9DKMFmJGrx5SwMZQ4cag0Gl6v8oycso9b/g=="
+    },
+    "typescript@4.9.5": {
+      "integrity": "sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g=="
+    }
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@types/node@^16.11.0",
+        "npm:keypress@~0.2.1",
+        "npm:systeminformation@^5.9.7",
+        "npm:typescript@^4.4.4"
+      ]
+    }
+  }
+}
